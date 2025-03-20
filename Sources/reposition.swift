@@ -46,11 +46,11 @@ func setFrame(of window: AXUIElement, to frame: CGRect, bundleID: String)
         window, kAXSizeAttribute as CFString, &canSetSize)
 
     if positionCheck != .success || !canSetPosition.boolValue {
-        return .err("Cannot set position for \(bundleID).")
+        return .err("Cannot set position for \(bundleID): \(positionCheck).")
     }
 
     if sizeCheck != .success || !canSetSize.boolValue {
-        return .err("Cannot set size for \(bundleID).")
+        return .err("Cannot set size for \(bundleID): \(sizeCheck).")
     }
 
     var position = frame.origin

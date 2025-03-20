@@ -136,4 +136,30 @@ for (app, bundleID) in appsToObserve {
     }
 }
 
+for (app, bundleID) in appsToObserve {
+    let pid = app.processIdentifier
+
+    func firstWindowElement(for pid: pid_t) -> AXUIElement? {
+        // can't just use the accessibilityElement for some reason
+        let accessibilityElement = AXUIElementCreateApplication(pid)
+        var window: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(
+            accessibilityElement, kAXMainWindowAttribute as CFString, &window)
+
+        guard result == .success, let window else { return nil }
+        return (window as! AXUIElement)
+    }
+
+    if let accessibilityElement = firstWindowElement(for: pid) {
+        switch setFrame(
+            of: accessibilityElement, to: appFrame, bundleID: bundleID)
+        {
+        case .err(let message):
+            error(message)
+        default:
+            break
+        }
+    }
+}
+
 CFRunLoopRun()
