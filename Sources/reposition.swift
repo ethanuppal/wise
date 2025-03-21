@@ -24,7 +24,7 @@ func screenFrameExcludingNotch() -> CGRect {
     let screenFrame = mainScreen.frame
     let visibleFrame = mainScreen.visibleFrame
     let notchHeight: CGFloat = 40  // screenFrame.height - visibleFrame.height
-    print(screenFrame.height - visibleFrame.height)
+    // print(screenFrame.height - visibleFrame.height)
 
     return CGRect(
         x: visibleFrame.origin.x,
@@ -34,7 +34,7 @@ func screenFrameExcludingNotch() -> CGRect {
     )
 }
 
-func setFrame(of window: AXUIElement, to frame: CGRect, bundleID: String)
+@MainActor func setFrame(of window: AXUIElement, bundleID: String)
     -> Result<(), String>
 {
     var canSetPosition: DarwinBoolean = false
@@ -52,6 +52,8 @@ func setFrame(of window: AXUIElement, to frame: CGRect, bundleID: String)
     if sizeCheck != .success || !canSetSize.boolValue {
         return .err("Cannot set size for \(bundleID): \(sizeCheck).")
     }
+
+    let frame = appFrames[bundleID] ?? fullAppFrame
 
     var position = frame.origin
     guard let positionValue = AXValueCreate(.cgPoint, &position) else {

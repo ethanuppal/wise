@@ -24,3 +24,15 @@ For example:
 ```shell
 swift run -c release wise com.apple.Safari net.kovidgoyal.kitty
 ```
+
+## Move windows around
+
+You can use RPC to port 12345:
+
+```shell
+curl -X POST http://localhost:12345 \
+    -H "Content-Type: application/json" \
+    -d '{"bundleID": "net.kovidgoyal.kitty", "position": "left"}'
+```
+
+Pass the bundle ID and the position (one of `"left"`, `"full"`, or `"right"`).

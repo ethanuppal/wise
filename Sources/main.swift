@@ -14,6 +14,7 @@
 
 @preconcurrency import ApplicationServices
 import Cocoa
+import Network
 
 func error(_ items: Any..., fatal: Bool = true) {
     print("❌ ", terminator: "")
@@ -37,7 +38,7 @@ let left: CGFloat = 8
 let right: CGFloat = 8
 let top: CGFloat = 6
 let bottom: CGFloat = 8
-let appFrame = {
+let fullAppFrame = {
     var screenFrame = screenFrameExcludingNotch()
     screenFrame.origin.x += left
     screenFrame.origin.y += top
@@ -45,6 +46,31 @@ let appFrame = {
     screenFrame.size.height -= bottom + top
     return screenFrame
 }()
+let leftAppFrame = {
+    var screenFrame = screenFrameExcludingNotch()
+    screenFrame.origin.x += left
+    screenFrame.origin.y += top
+    screenFrame.size.width -= left + right
+    screenFrame.size.width /= 2
+    screenFrame.size.height -= bottom + top
+    return screenFrame
+}()
+let rightAppFrame = {
+    var screenFrame = screenFrameExcludingNotch()
+    screenFrame.origin.x = screenFrame.size.width - right
+    screenFrame.origin.y += top
+    screenFrame.size.width -= left + right
+    screenFrame.size.width /= 2
+    screenFrame.origin.x -= screenFrame.size.width + (left + right) / 2
+    screenFrame.size.height -= bottom + top
+    return screenFrame
+}()
+var appFrames = [String: CGRect]()
+let appFrameLookup = [
+    "left": leftAppFrame,
+    "full": fullAppFrame,
+    "right": rightAppFrame,
+]
 
 /// so that the observers don't get `CFRelease`d
 var windowResizeObservers: [pid_t: (AXObserver, Set<UnsafeMutableRawPointer>)] =
@@ -63,7 +89,10 @@ let windowResizeObserverCallback: AXObserverCallback = {
         return
     }
 
-    switch setFrame(of: element, to: appFrame, bundleID: bundleID) {
+    switch setFrame(
+        of: element,
+        bundleID: bundleID)
+    {
     case .err(let message):
         error(message, fatal: false)
     default:
@@ -130,11 +159,10 @@ let windowCreatedOrDeletedObserverCallback: AXObserverCallback = {
 
 @MainActor func observeWindowResizing(
     _ window: AXUIElement, observer: AXObserver, bundleID: String
-)
-    -> Result<(), String>
-{
+) -> Result<(), String> {
     switch setFrame(
-        of: window, to: appFrame, bundleID: bundleID)
+        of: window,
+        bundleID: bundleID)
     {
     case .err(let message):
         return .err(message)
@@ -153,6 +181,20 @@ let windowCreatedOrDeletedObserverCallback: AXObserverCallback = {
     }
 
     return .ok(())
+}
+
+func getWindowsFromAppAccessibilityElement(
+    accessibilityElement: AXUIElement, bundleID: String
+) -> Result<[AXUIElement], String> {
+    var appWindows: AnyObject?
+    guard
+        AXUIElementCopyAttributeValue(
+            accessibilityElement, kAXWindowsAttribute as CFString, &appWindows)
+            == .success, let appWindows = appWindows as? [AXUIElement]
+    else {
+        return .err("No windows found for \(bundleID)")
+    }
+    return .ok(appWindows)
 }
 
 @MainActor func observeWindows(
@@ -216,13 +258,14 @@ let windowCreatedOrDeletedObserverCallback: AXObserverCallback = {
         )
     }
 
-    var appWindows: AnyObject?
-    guard
-        AXUIElementCopyAttributeValue(
-            accessibilityElement, kAXWindowsAttribute as CFString, &appWindows)
-            == .success, let appWindows = appWindows as? [AXUIElement]
-    else {
-        return .err("No windows found for \(bundleID)")
+    let appWindows: [AXUIElement]
+    switch getWindowsFromAppAccessibilityElement(
+        accessibilityElement: accessibilityElement, bundleID: bundleID)
+    {
+    case .ok(let appWindowsResult):
+        appWindows = appWindowsResult
+    case .err(let message):
+        return .err(message)
     }
 
     for window in appWindows {
@@ -343,6 +386,10 @@ for (app, bundleID) in appsToObserve {
     default:
         break
     }
+}
+
+if #available(macOS 10.14, *) {
+    startSocketListener()
 }
 
 CFRunLoopRun()
