@@ -16,13 +16,13 @@ cd wise
 Then, run:
 
 ```shell
-swift run -c release wise <bundle ids>
+cargo run --release -- <bundle ids>
 ```
 
 For example:
 
 ```shell
-swift run -c release wise com.apple.Safari net.kovidgoyal.kitty
+cargo run --release -- com.apple.Safari net.kovidgoyal.kitty
 ```
 
 ## Move windows around

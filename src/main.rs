@@ -12,18 +12,14 @@
 // You should have received a copy of the GNU General Public License along with
 // this program.  If not, see <https://www.gnu.org/licenses/>.
 
-let disablePrint = false
+use wise::{has_accessibility_permissions, WiseError};
 
-func print(_ items: Any..., separator: String = " ", terminator: String = "\n")
-{
-    if disablePrint {
-        return
-    }
-    for i in items.indices {
-        if i > 0 {
-            Swift.print(separator, separator: "", terminator: "")
-        }
-        Swift.print(items[i], separator: "", terminator: "")
-    }
-    Swift.print(terminator, separator: "", terminator: "")
+#[snafu::report]
+fn main() -> Result<(), WiseError> {
+    println!(
+        "has accessibility perms: {}",
+        has_accessibility_permissions()?
+    );
+
+    Ok(())
 }
